@@ -12,16 +12,19 @@
  * them to match your setup.
  */
 
+/** `wip` countries are hidden by default and flagged as work in progress on /config */
 export const COUNTRIES = [
   { code: "ro", name: "Romania", flag: "🇷🇴" },
-  { code: "br", name: "Brazil", flag: "🇧🇷" },
+  { code: "br", name: "Brazil", flag: "🇧🇷", wip: true },
   { code: "pl", name: "Poland", flag: "🇵🇱" },
-  { code: "rs", name: "Serbia", flag: "🇷🇸" },
-  { code: "be", name: "Belgium", flag: "🇧🇪" },
-  { code: "gr", name: "Greece", flag: "🇬🇷" },
+  { code: "rs", name: "Serbia", flag: "🇷🇸", wip: true },
+  { code: "be", name: "Belgium", flag: "🇧🇪", wip: true },
+  { code: "gr", name: "Greece", flag: "🇬🇷", wip: true },
   { code: "es", name: "Spain", flag: "🇪🇸" },
   { code: "de", name: "Germany", flag: "🇩🇪" },
-] as const
+] as const satisfies readonly { code: string; name: string; flag: string; wip?: boolean }[]
+
+export const isWipCountry = (code: CountryCode) => COUNTRIES.some(c => c.code === code && "wip" in c && c.wip)
 
 export type CountryCode = (typeof COUNTRIES)[number]["code"]
 

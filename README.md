@@ -124,7 +124,9 @@ them; `NEXT_PUBLIC_*` values are inlined into the browser bundle at build time.
 Authologic account, so adjust them to match.
 
 The `/config` page (gear icon) changes demo presentation only — logo, visible countries, and the AML form gate. These
-settings live in the browser's `localStorage`.
+settings live in the browser's `localStorage`. Countries marked `wip` in [`lib/methods.ts`](lib/methods.ts) (currently
+Brazil, Serbia, Belgium and Greece) are hidden by default and labelled "Work in progress" there; you can still switch
+them on.
 
 ## Troubleshooting
 

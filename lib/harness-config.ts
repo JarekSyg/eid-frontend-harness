@@ -8,7 +8,7 @@
  * feature flags). Stored in localStorage only — nothing here is sent to the server.
  */
 import { useSyncExternalStore } from "react"
-import { COUNTRIES, type CountryCode } from "@/lib/methods"
+import { COUNTRIES, isWipCountry, type CountryCode } from "@/lib/methods"
 
 export const LOGO_PRESETS = [
   { id: "acme", name: "Acme", src: "/acme-logo.png" },
@@ -20,7 +20,7 @@ export const CUSTOM_LOGO_ID = "custom"
 export type HarnessConfig = {
   logoId: string
   customLogo?: { src: string; name: string }
-  /** Visible countries per logo id; logos without an entry show all countries */
+  /** Visible countries per logo id; logos without an entry show all non-WIP countries */
   countriesByLogo?: Record<string, CountryCode[]>
   /** Feature flag: "Show additional signup options" first runs the AML form verification */
   amlFormGate?: boolean
@@ -103,6 +103,7 @@ export function resolveLogo(config: HarnessConfig): ResolvedLogo {
 /** Countries visible for the currently selected logo, in COUNTRIES order */
 export function getVisibleCountries(config: HarnessConfig): CountryCode[] {
   const saved = config.countriesByLogo?.[config.logoId]
-  const visible = COUNTRIES.map(c => c.code).filter(code => !saved || saved.includes(code))
-  return visible.length ? visible : COUNTRIES.map(c => c.code)
+  const defaults = COUNTRIES.map(c => c.code).filter(code => !isWipCountry(code))
+  const visible = saved ? COUNTRIES.map(c => c.code).filter(code => saved.includes(code)) : defaults
+  return visible.length ? visible : defaults
 }

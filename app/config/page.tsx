@@ -22,7 +22,7 @@ import {
   type ResolvedLogo,
   type HarnessConfig,
 } from "@/lib/harness-config"
-import { COUNTRIES, METHODS, type CountryCode } from "@/lib/methods"
+import { COUNTRIES, isWipCountry, METHODS, type CountryCode } from "@/lib/methods"
 
 const MAX_SVG_BYTES = 300 * 1024
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024
@@ -251,7 +251,14 @@ export default function ConfigPage() {
                     className="flex w-full items-center gap-3 px-4 py-3 text-left disabled:cursor-not-allowed"
                   >
                     <span className="text-xl leading-none">{c.flag}</span>
-                    <span className="flex-1 text-sm text-gray-900">{c.name}</span>
+                    <span className="flex flex-1 items-center gap-2 text-sm text-gray-900">
+                      {c.name}
+                      {isWipCountry(c.code) && (
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium leading-none text-amber-800">
+                          Work in progress
+                        </span>
+                      )}
+                    </span>
                     <SwitchTrack checked={checked} dimmed={locked} />
                   </button>
                 )
