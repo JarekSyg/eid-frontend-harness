@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability
+    url: https://github.com/JarekSyg/eid-frontend-harness/security/advisories/new
+    about: Please report security issues privately.
+  - name: Authologic SDK or platform questions
+    url: https://developer.authologic.com
+    about: Questions about the OmniID SDK, strategies or your Authologic account.

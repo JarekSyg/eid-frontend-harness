@@ -1,0 +1,49 @@
+name: Bug report
+description: Something in the harness doesn't work as documented
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Security issue?** Don't file it here — see [SECURITY.md](https://github.com/JarekSyg/eid-frontend-harness/blob/main/SECURITY.md).
+        Never paste credentials, webhook secrets, conversation results or other personal data.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, and what happened instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Select country …
+        2. Tap …
+        3. See error …
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs
+      description: Server and browser console output. Redact anything sensitive.
+      render: shell
+  - type: input
+    id: method
+    attributes:
+      label: Verification method / strategy
+      placeholder: e.g. roWallet (portal:dcapi+eudi)
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Authologic environment
+      options: [sandbox, production, custom]
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: Commit SHA, Node.js version, browser and OS
+    validations:
+      required: true
