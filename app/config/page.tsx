@@ -4,9 +4,9 @@
 "use client"
 
 import { AnimatePresence, motion } from "framer-motion"
-import { ArrowLeft, Check, Upload } from "lucide-react"
+import { ArrowLeft, Check, Info, Upload } from "lucide-react"
 import Link from "next/link"
-import { useRef, useState, type ChangeEvent } from "react"
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from "react"
 import { toast } from "sonner"
 import BrandLogo from "@/components/BrandLogo"
 import { Toaster } from "@/components/ui/sonner"
@@ -37,6 +37,74 @@ const CHECK_BADGE = {
 const SWITCH = {
   knobTravel: 16,   // px the knob slides when switched on
   spring: { type: "spring" as const, stiffness: 500, damping: 30 },
+}
+
+/* Logo notice modal */
+const MODAL = {
+  offsetY:      12,    // px the card rises from
+  initialScale: 0.96,  // scale before appearing
+  spring:   { type: "spring" as const, stiffness: 400, damping: 30 },
+  backdrop: { duration: 0.15 },
+}
+
+function LogoNoticeModal({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const buttonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    buttonRef.current?.focus()
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose()
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [open, onClose])
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={MODAL.backdrop}
+          onClick={onClose}
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-4 sm:items-center"
+        >
+          <motion.div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="logo-notice-title"
+            aria-describedby="logo-notice-body"
+            initial={{ opacity: 0, y: MODAL.offsetY, scale: MODAL.initialScale }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: MODAL.offsetY, scale: MODAL.initialScale }}
+            transition={MODAL.spring}
+            onClick={e => e.stopPropagation()}
+            className="flex w-full max-w-sm flex-col gap-4 rounded-3xl bg-white p-6 shadow-xl"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-[#1a6ef5]">
+              <Info className="h-5 w-5" />
+            </div>
+            <div className="flex flex-col gap-2">
+              <h2 id="logo-notice-title" className="text-base font-semibold text-gray-900">
+                Logo changes on the main page only
+              </h2>
+              <p id="logo-notice-body" className="text-sm leading-relaxed text-gray-500">
+                This logo is shown on the sign-up page header. The OmniID widget keeps its own logo, which you set
+                separately in the <span className="font-medium text-gray-700">Branding</span> section of OmniPanel.
+              </p>
+            </div>
+            <button
+              ref={buttonRef}
+              onClick={onClose}
+              className="h-12 w-full rounded-full bg-gray-900 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+            >
+              Got it
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  )
 }
 
 const readAsDataUrl = (file: File) =>
@@ -125,10 +193,14 @@ export default function ConfigPage() {
   const hydrated = useHydrated()
   const inputRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  const [logoNoticeOpen, setLogoNoticeOpen] = useState(false)
+  const closeLogoNotice = useCallback(() => setLogoNoticeOpen(false), [])
 
   const save = (next: HarnessConfig) => {
     try {
       saveHarnessConfig(next)
+      // Moving away from the default logo: explain that the widget's logo is configured elsewhere
+      if (config.logoId === DEFAULT_CONFIG.logoId && next.logoId !== DEFAULT_CONFIG.logoId) setLogoNoticeOpen(true)
       return true
     } catch {
       toast.error("Your browser couldn't save the configuration. Try a smaller logo file.")
@@ -171,6 +243,7 @@ export default function ConfigPage() {
   return (
     <div className="min-h-dvh bg-white">
       <Toaster position="top-center" richColors />
+      <LogoNoticeModal open={logoNoticeOpen} onClose={closeLogoNotice} />
       <header className="relative flex h-16 items-center justify-center border-b border-gray-100 px-4">
         <Link
           href="/"
