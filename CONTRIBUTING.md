@@ -37,7 +37,7 @@ CI runs the same steps on every pull request.
 - Add the SPDX header to new source files:
   ```ts
   // SPDX-FileCopyrightText: 2026 Authologic Sp. z o.o.
-  // SPDX-License-Identifier: AGPL-3.0-only
+  // SPDX-License-Identifier: MIT
   ```
 - Update the README when you change configuration, setup steps or behaviour that integrators rely on.
 - Don't add third-party logos or artwork unless the owner's brand guidelines allow it; list new ones in
@@ -45,8 +45,8 @@ CI runs the same steps on every pull request.
 
 ## Licensing of contributions
 
-This project is licensed under [AGPL-3.0-only](LICENSE) with the additional permission described in
-[`NOTICE.md`](NOTICE.md). By submitting a contribution, you agree that it is licensed under the same terms.
+This project is licensed under the [MIT License](LICENSE). By submitting a contribution, you agree that it is licensed
+under the same terms.
 
 We use the [Developer Certificate of Origin](https://developercertificate.org/) (DCO). Sign off every commit to
 certify that you wrote the change or otherwise have the right to submit it under the project's license:

@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Reference frontend showing how to integrate the Authologic OmniID web SDK for eID and digital-wallet verification.",
-  "license": "AGPL-3.0-only",
+  "license": "MIT",
   "author": "Authologic Sp. z o.o.",
   "homepage": "https://github.com/JarekSyg/eid-frontend-harness#readme",
   "repository": {

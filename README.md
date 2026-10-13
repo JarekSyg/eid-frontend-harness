@@ -1,7 +1,7 @@
 # eID Frontend Harness
 
 [![CI](https://github.com/JarekSyg/eid-frontend-harness/actions/workflows/ci.yml/badge.svg)](https://github.com/JarekSyg/eid-frontend-harness/actions/workflows/ci.yml)
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A reference frontend showing how to integrate the [Authologic OmniID web SDK](https://www.npmjs.com/package/@authologic/omni-websdk)
 for eID and digital-wallet identity verification: national eIDs, EUDI wallets, bank identity and more, all behind one
@@ -118,7 +118,7 @@ them; `NEXT_PUBLIC_*` values are inlined into the browser bundle at build time.
 | `NEXT_PUBLIC_AUTHOLOGIC_WIDGET_ID` | browser | Widget id (`development_only` works in sandbox) |
 | `NEXT_PUBLIC_AUTHOLOGIC_ENVIRONMENT` | browser | `sandbox`, `production`, or a custom base URL. Must match the environment of `AUTHOLOGIC_API_URL`. |
 | `NEXT_PUBLIC_FORM_URL` | browser | Optional target for the "Fill out the form" button |
-| `NEXT_PUBLIC_SOURCE_URL` | browser | Optional link to the source code shown in the footer (see [License](#license)) |
+| `NEXT_PUBLIC_SOURCE_URL` | browser | Optional footer link to the source code (defaults to this repository) |
 
 **Strategies** are defined in [`lib/methods.ts`](lib/methods.ts). Which ones work depends on what's enabled for your
 Authologic account, so adjust them to match.
@@ -176,17 +176,14 @@ privately as described in [`SECURITY.md`](SECURITY.md), not in public issues. Th
 
 Copyright © 2026 Authologic Sp. z o.o.
 
-The code in this repository is free software, licensed under the
-[GNU Affero General Public License v3.0 only](LICENSE) (`AGPL-3.0-only`).
+The code in this repository is released under the [MIT License](LICENSE). You can use, copy, modify and distribute it,
+including in commercial and closed-source products, as long as you keep the copyright and license notice.
 
-What that means in practice:
+The MIT License does **not** cover:
 
-- You can use, study, modify and share the code.
-- If you distribute it, or **let users interact with a modified version over a network**, you must make the complete
-  source of your version available to them under the same license. The footer's "Source code" link exists for this;
-  point `NEXT_PUBLIC_SOURCE_URL` at your fork if you deploy changes.
+- **The Authologic OmniID web SDK** (`@authologic/omni-websdk`). It's installed from npm, isn't part of this
+  repository, and is proprietary — see [Before going to production](#before-going-to-production) and the package's
+  own `LICENSE`.
+- **Third-party trademarks and artwork** in `public/`, such as the wallet and eID logos.
 
-**Authologic SDK exception.** The license includes an additional permission (GNU AGPL section 7) that lets you combine
-this code with the proprietary `@authologic/omni-websdk` package and convey the result without having to provide the
-SDK's source code. The SDK itself stays under its own license, which you need to comply with separately. See
-[`NOTICE.md`](NOTICE.md) for the exact wording, and for third-party trademarks and artwork that the AGPL does not cover.
+See [`NOTICE.md`](NOTICE.md) for details.

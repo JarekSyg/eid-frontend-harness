@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Authologic Sp. z o.o.
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: MIT
 
 /**
  * Verification methods offered by the harness.
@@ -38,8 +38,7 @@ export const METHODS = {
   carteraDigital: { label: "Sign up with Cartera Digital",    strategy: EUDI_STRATEGY },
   clave:          { label: "Sign up with Cl@ve",              strategy: "public:clave" },
   dYouWallet:     { label: "Verify with d-you Wallet",        strategy: EUDI_STRATEGY },
-  // TODO: confirm the AusweisApp strategy id for your account
-  ausweisApp:     { label: "Sign up with AusweisApp2",        strategy: "public:ausweisapp" },
+  ausweisApp:     { label: "Sign up with AusweisApp2",        strategy: "public:ausweis" },
   // Optional gate in front of "Show additional signup options" (see /config)
   amlForm:        { label: "AML form",                        strategy: "public:amlmform" },
 } as const satisfies Record<string, { label: string; strategy: string }>

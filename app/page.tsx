@@ -1,5 +1,5 @@
 // SPDX-FileCopyrightText: 2026 Authologic Sp. z o.o.
-// SPDX-License-Identifier: AGPL-3.0-only
+// SPDX-License-Identifier: MIT
 
 "use client"
 
@@ -100,8 +100,7 @@ const t = {
   source: "Source code",
 }
 
-// AGPL-3.0 section 13: users interacting with the app over a network must be offered its source.
-// Point this at your fork if you deploy a modified version.
+// Footer link to the source code; point it at your fork if you have one
 const SOURCE_URL = process.env.NEXT_PUBLIC_SOURCE_URL || "https://github.com/JarekSyg/eid-frontend-harness"
 
 const DEFAULT_COUNTRY: CountryCode = "ro"
