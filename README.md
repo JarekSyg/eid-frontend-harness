@@ -160,8 +160,8 @@ This harness cuts corners that a real integration must not:
 ## Branding
 
 The header uses a fictional "Acme" placeholder logo (switchable in `/config`, where you can also upload your own). The
-verification buttons use the official wallet and eID artwork in [`public/wallets/`](public/wallets) — mObywatel, EU
-Digital Identity Wallet, Cartera Digital, d-you Wallet and AusweisApp. These names and logos are trademarks of their
+verification buttons use the official wallet and eID artwork in [`public/wallets/`](public/wallets) — mObywatel, eDO App,
+EU Digital Identity Wallet, Cartera Digital, d-you Wallet and AusweisApp. These names and logos are trademarks of their
 respective owners, are **not** covered by this repository's license, and are shown only to identify each verification
 method. Follow each owner's brand guidelines when you use them in your own product. The button designs are defined in
 `METHOD_DESIGN` in [`app/page.tsx`](app/page.tsx). See [`NOTICE.md`](NOTICE.md) for the full list.

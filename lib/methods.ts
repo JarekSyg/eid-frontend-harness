@@ -34,6 +34,7 @@ export const METHODS = {
   global:         { label: "Verify identity with the wallet", strategy: "public:dcapi" },
   roWallet:       { label: "Sign up with RO Wallet",          strategy: EUDI_STRATEGY },
   mObywatel:      { label: "Sign up with mObywatel",          strategy: "OmniId:Mobywatel" },
+  edoApp:         { label: "Sign up with eDO App",            strategy: "public:ed" },
   bank:           { label: "Sign up with the bank",           strategy: "public:mi" },
   carteraDigital: { label: "Sign up with Cartera Digital",    strategy: EUDI_STRATEGY },
   clave:          { label: "Sign up with Cl@ve",              strategy: "public:clave" },
@@ -50,7 +51,7 @@ export const isMethodId = (value: unknown): value is MethodId =>
 
 /** Methods shown per country, in display order. Countries without an entry get `global`. */
 export const COUNTRY_METHODS: Partial<Record<CountryCode, MethodId[]>> = {
-  pl: ["mObywatel", "bank"],
+  pl: ["mObywatel", "bank", "edoApp"],
   ro: ["roWallet"],
   es: ["carteraDigital", "clave"],
   de: ["dYouWallet", "ausweisApp"],

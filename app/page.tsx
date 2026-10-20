@@ -145,6 +145,7 @@ const DARK_VARIANTS = new Set<keyof typeof PILL_VARIANTS>(["primary", "brand", "
 const METHOD_DESIGN: Record<MethodId, { variant: keyof typeof PILL_VARIANTS; icon?: ReactNode; imageOnly?: boolean }> = {
   global:         { variant: "primary" },
   mObywatel:      { variant: "mObywatel", icon: <img src="/wallets/mobywatel.png" alt="" className="w-14 h-14" /> },
+  edoApp:         { variant: "elevated",  icon: <img src="/wallets/edoapp_logo.png" alt="" className="w-8 h-8 rounded-lg" /> },
   bank:           { variant: "outline",   icon: <Landmark className="w-6 h-6" strokeWidth={1.75} /> },
   roWallet:       { variant: "elevated",  icon: <img src="/wallets/eu_wallet.svg" alt="" width={84} height={28} className="h-7 w-auto" /> },
   carteraDigital: { variant: "elevated",  icon: <img src="/wallets/cartera_digital_mark.png" alt="" className="h-7 w-auto" /> },
@@ -492,12 +493,21 @@ function HarnessPage() {
   const [loadingMethod, setLoadingMethod] = useState<MethodId | null>(null)
   const [widgetOpen, setWidgetOpen] = useState(false)
   const savedCountry = useSavedCountry() ?? DEFAULT_COUNTRY
-  const [amlFormUnlocked, setAmlFormUnlocked] = useState(false)
+  // Country the AML form was completed for; the answers don't carry over to another country
+  const [amlFormCountry, setAmlFormCountry] = useState<CountryCode | null>(null)
   const pendingWait = useRef<AbortController | null>(null)
   const config = useHarnessConfig()
   const visibleCountries = getVisibleCountries(config)
   // Fall back to the first visible country if the saved one is hidden for this logo
   const country = visibleCountries.includes(savedCountry) ? savedCountry : visibleCountries[0]
+
+  // Switching country re-locks the additional options, even when switching back (adjusting state during render)
+  const [prevCountry, setPrevCountry] = useState(country)
+  if (country !== prevCountry) {
+    setPrevCountry(country)
+    setAmlFormCountry(null)
+  }
+  const amlFormUnlocked = amlFormCountry === country
 
   // Set by the conversation's returnUrl after the final redirect
   const resultKey = searchParams.get("verification")
@@ -606,7 +616,7 @@ function HarnessPage() {
                 disabled={!!loadingMethod}
                 unlocked={!!config.amlFormGate && amlFormUnlocked}
                 loading={loadingMethod === "amlForm"}
-                onUnlock={config.amlFormGate ? () => verify("amlForm", () => setAmlFormUnlocked(true)) : undefined}
+                onUnlock={config.amlFormGate ? () => verify("amlForm", () => setAmlFormCountry(country)) : undefined}
               />
             </motion.div>
           </AnimatePresence>

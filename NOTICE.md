@@ -23,6 +23,7 @@ included only to identify each verification method or the SDK vendor:
 | --- | --- |
 | `public/authologic-logo.svg` | Authologic Sp. z o.o. |
 | `public/wallets/mobywatel.png` | mObywatel (Republic of Poland) |
+| `public/wallets/edoapp_logo.png` | eDO App (Polska Wytwórnia Papierów Wartościowych S.A.) |
 | `public/wallets/eu_wallet.svg` | EU Digital Identity Wallet (European Commission) |
 | `public/wallets/cartera_digital_mark.png` | Cartera Digital Beta (Government of Spain) |
 | `public/wallets/d-you-wallet/` | d-you Wallet |
