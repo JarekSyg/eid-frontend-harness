@@ -33,7 +33,7 @@ const EUDI_STRATEGY = "portal:dcapi+eudi"
 export const METHODS = {
   global:         { label: "Verify identity with the wallet", strategy: "public:dcapi" },
   roWallet:       { label: "Sign up with RO Wallet",          strategy: EUDI_STRATEGY },
-  mObywatel:      { label: "Sign up with mObywatel",          strategy: "OmniId:Mobywatel" },
+  mObywatel:      { label: "Sign up with mObywatel",          strategy: "public:dcmo5" },
   edoApp:         { label: "Sign up with eDO App",            strategy: "public:ed" },
   bank:           { label: "Sign up with the bank",           strategy: "public:mi" },
   carteraDigital: { label: "Sign up with Cartera Digital",    strategy: EUDI_STRATEGY },

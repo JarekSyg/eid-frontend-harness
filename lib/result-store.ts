@@ -6,8 +6,11 @@
  *
  * DEMO ONLY: results are written as JSON files on local disk and expire after
  * an hour. In production use a real database, encrypt personal data at rest,
- * and apply your own retention policy.
+ * and apply your own retention policy. Change notifications are in-process,
+ * so they don't reach other instances — use a pub/sub (Redis, Postgres
+ * LISTEN/NOTIFY…) when running more than one.
  */
+import { EventEmitter } from "node:events"
 import fs from "node:fs"
 import path from "node:path"
 
@@ -26,6 +29,18 @@ export type StoredResult = {
   updatedAt: number
 }
 
+// Next.js bundles each route separately, so share the emitter through globalThis
+const globalForResults = globalThis as typeof globalThis & { __verificationResultEvents?: EventEmitter }
+const events = (globalForResults.__verificationResultEvents ??= new EventEmitter().setMaxListeners(0))
+
+/** Calls `listener` whenever a result is saved under `key`. Returns the unsubscribe function. */
+export function subscribeToResult(key: string, listener: (result: StoredResult) => void) {
+  events.on(key, listener)
+  return () => {
+    events.off(key, listener)
+  }
+}
+
 const fileFor = (key: string) => {
   if (!SAFE_KEY.test(key)) throw new Error("Invalid result key")
   return path.join(STORAGE_DIR, `${key}.json`)
@@ -33,7 +48,9 @@ const fileFor = (key: string) => {
 
 export function saveResult(key: string, value: Omit<StoredResult, "updatedAt">) {
   fs.mkdirSync(STORAGE_DIR, { recursive: true })
-  fs.writeFileSync(fileFor(key), JSON.stringify({ ...value, updatedAt: Date.now() } satisfies StoredResult))
+  const stored: StoredResult = { ...value, updatedAt: Date.now() }
+  fs.writeFileSync(fileFor(key), JSON.stringify(stored))
+  events.emit(key, stored)
 }
 
 export function getResult(key: string): StoredResult | null {

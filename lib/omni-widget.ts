@@ -81,31 +81,42 @@ export async function closeWidget() {
  * Step 3 — confirm the outcome on the backend. The widget's onClose only tells
  * you the UI flow ended; the webhook result is what you should trust.
  *
- * Polls until `until(result)` is true, the timeout elapses, or `signal` aborts.
+ * No polling: opens one Server-Sent Events stream and the server pushes the
+ * result the moment the webhook arrives. Resolves with the first result where
+ * `until(result)` is true, or `null` when `timeoutMs` (if set) elapses, the
+ * stream fails for good, or `signal` aborts.
  */
-export async function waitForResult(
+export function waitForResult(
   key: string,
-  {
-    until,
-    intervalMs = 1500,
-    timeoutMs = 2 * 60 * 1000,
-    signal,
-  }: { until: (result: StoredResult) => boolean; intervalMs?: number; timeoutMs?: number; signal?: AbortSignal },
+  { until, timeoutMs, signal }: { until: (result: StoredResult) => boolean; timeoutMs?: number; signal?: AbortSignal },
 ): Promise<StoredResult | null> {
-  const deadline = Date.now() + timeoutMs
-  while (!signal?.aborted && Date.now() < deadline) {
-    try {
-      const res = await fetch(`/api/conversations/${encodeURIComponent(key)}`, { signal, cache: "no-store" })
-      if (res.ok) {
-        const result: StoredResult = await res.json()
-        if (until(result)) return result
-      }
-    } catch {
-      if (signal?.aborted) break
+  return new Promise(resolve => {
+    if (signal?.aborted) return resolve(null)
+
+    const source = new EventSource(`/api/conversations/${encodeURIComponent(key)}/events`)
+    const timer = timeoutMs ? setTimeout(() => finish(null), timeoutMs) : undefined
+    const onAbort = () => finish(null)
+    function finish(result: StoredResult | null) {
+      source.close()
+      clearTimeout(timer)
+      signal?.removeEventListener("abort", onAbort)
+      resolve(result)
     }
-    await new Promise(resolve => setTimeout(resolve, intervalMs))
-  }
-  return null
+
+    signal?.addEventListener("abort", onAbort)
+    source.addEventListener("result", event => {
+      try {
+        const result: StoredResult = JSON.parse((event as MessageEvent<string>).data)
+        if (until(result)) finish(result)
+      } catch {
+        // ignore malformed events
+      }
+    })
+    // EventSource reconnects on its own after network blips; CLOSED means it gave up (e.g. a non-200 response)
+    source.addEventListener("error", () => {
+      if (source.readyState === EventSource.CLOSED) finish(null)
+    })
+  })
 }
 
 export const isFinished = (result: StoredResult) => result.status === "FINISHED"
