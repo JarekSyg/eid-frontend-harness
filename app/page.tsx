@@ -5,7 +5,7 @@
 
 import confetti from "canvas-confetti"
 import { AnimatePresence, motion } from "framer-motion"
-import { Check, ChevronDown, Globe, KeyRound, Landmark, Settings, SquarePen } from "lucide-react"
+import { Check, ChevronDown, Fingerprint, Globe, KeyRound, Landmark, Settings, SquarePen } from "lucide-react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { Suspense, useEffect, useRef, useState, type ReactNode } from "react"
@@ -80,6 +80,75 @@ const DROPDOWN = {
   transition:   { duration: 0.18, ease: "easeOut" as const },
 }
 
+/* ─────────────────────────────────────────────────────────
+ * ANIMATION STORYBOARD — Result screen
+ *
+ * While waiting, the badge breathes, a ring pulses outward and
+ * skeleton cards shimmer. Nothing is polled: the server pushes the
+ * webhook result over a single event stream the moment it arrives.
+ *
+ * On arrival the wait state fades out (200ms). Each `at` value is ms
+ * after that:
+ *
+ *    0ms   badge pops in: scale 0.4 → 1, confetti
+ *  150ms   check mark draws itself
+ *  250ms   title + subtitle rise in: y 16 → 0, blur 6px → 0
+ *  400ms   ID photo scales in: 0.8 → 1, blur 8px → 0
+ *  550ms   data cards rise in one by one, 90ms apart
+ *          (name types in letter by letter, 25ms apart)
+ *   last   "Verify again" rises in after the final card
+ * ───────────────────────────────────────────────────────── */
+
+const RESULT_TIMING = {
+  badge:         0,     // badge pops in
+  check:         150,   // check stroke starts drawing
+  title:         250,   // title + subtitle rise in
+  photo:         400,   // ID photo scales in
+  cards:         550,   // first data card rises in
+  cardStagger:   90,    // gap between cards
+  textAfterCard: 120,   // name starts typing after its card
+  letterStagger: 25,    // gap between name letters
+}
+
+/* Wait state */
+const WAITING = {
+  pulseScale:     1.7,   // ring grows to this before fading
+  breatheScale:   1.06,  // badge scale at the top of a breath
+  shimmerStagger: 0.15,  // s between skeleton rows
+  exitMs:         200,   // fade-out before the success sequence
+  exitScale:      0.96,
+  pulse:   { repeat: Infinity, duration: 1.6, ease: "easeOut" as const },
+  breathe: { repeat: Infinity, duration: 1.6, ease: "easeInOut" as const },
+  shimmer: { repeat: Infinity, duration: 1.4, ease: "easeInOut" as const },
+}
+
+/* Success badge */
+const BADGE = {
+  initialScale: 0.4,
+  spring: { type: "spring" as const, stiffness: 420, damping: 18 },
+  draw:   { duration: 0.35, ease: "easeOut" as const },
+}
+
+/* Title and data cards */
+const RISE = {
+  offsetY:     16,   // px they rise from
+  initialBlur: 6,    // px blur before appearing
+  spring: { type: "spring" as const, stiffness: 300, damping: 26 },
+}
+
+/* ID photo */
+const PHOTO = {
+  initialScale: 0.8,
+  initialBlur:  8,
+  spring: { type: "spring" as const, stiffness: 260, damping: 20 },
+}
+
+/* Name letters */
+const LETTER = {
+  offsetY:  6,     // px each letter rises from
+  duration: 0.2,
+}
+
 const t = {
   prompt: "Tap to initiate ID verification",
   form: "Fill out the form",
@@ -89,12 +158,13 @@ const t = {
   verifying: "Verifying…",
   successTitle: "Identity Verified",
   successSubtitle: "Your identity has been successfully confirmed.",
-  pendingTitle: "Still processing",
-  pendingSubtitle: "We haven't received the verification result yet. It can take a moment for the webhook to arrive.",
-  retry: "Check again",
+  waitingTitle: "Confirming your identity",
+  waitingSubtitle: "Waiting for the verification result. This page updates as soon as it arrives.",
+  lostTitle: "Connection lost",
+  lostSubtitle: "We lost the connection while waiting for the verification result.",
+  retry: "Reconnect",
   name: "Name",
   verifyAgain: "Verify again",
-  fetching: "Loading your data…",
   gateTimeout: "Timed out waiting for the verification result.",
   powered: "Powered by Authologic OmniID webSDK",
   source: "Source code",
@@ -107,11 +177,8 @@ const DEFAULT_COUNTRY: CountryCode = "ro"
 
 const FORM_URL = process.env.NEXT_PUBLIC_FORM_URL
 
-/* How long to wait for the webhook result */
-const RESULT_WAIT = {
-  successView: 30 * 1000,     // after returning from the final redirect
-  amlGate:     10 * 60 * 1000, // while the user fills out the AML form
-}
+/* How long the AML form gate waits for the webhook result */
+const AML_GATE_TIMEOUT_MS = 10 * 60 * 1000
 
 const LANG = "en"
 
@@ -363,28 +430,191 @@ function flatten(obj: Record<string, unknown>, out: Record<string, unknown> = {}
 const isPhotoValue = (v: unknown): v is string =>
   typeof v === "string" && (v.startsWith("data:image/") || (v.length > 300 && /^[A-Za-z0-9+/=\s]+$/.test(v)))
 
+const sec = (ms: number) => ms / 1000
+
+// lucide's Check icon, drawn as a motion path so the stroke can animate
+const CHECK_PATH = "M20 6 9 17l-5-5"
+
+function SuccessBadge() {
+  return (
+    <motion.div
+      initial={{ scale: BADGE.initialScale, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ ...BADGE.spring, delay: sec(RESULT_TIMING.badge) }}
+      className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-green-700"
+    >
+      <svg viewBox="0 0 24 24" className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <motion.path
+          d={CHECK_PATH}
+          initial={{ pathLength: 0 }}
+          animate={{ pathLength: 1 }}
+          transition={{ ...BADGE.draw, delay: sec(RESULT_TIMING.check) }}
+        />
+      </svg>
+    </motion.div>
+  )
+}
+
+function RiseIn({ at, className, children }: { at: number; className?: string; children: ReactNode }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: RISE.offsetY, filter: `blur(${RISE.initialBlur}px)` }}
+      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+      transition={{ ...RISE.spring, delay: sec(at) }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+/** Types `text` in letter by letter, starting `at` ms */
+function RevealText({ text, at }: { text: string; at: number }) {
+  return (
+    <>
+      <span className="sr-only">{text}</span>
+      <span aria-hidden>
+        {Array.from(text).map((char, i) => (
+          <motion.span
+            key={i}
+            className="inline-block whitespace-pre"
+            initial={{ opacity: 0, y: LETTER.offsetY }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: LETTER.duration, delay: sec(at + i * RESULT_TIMING.letterStagger) }}
+          >
+            {char}
+          </motion.span>
+        ))}
+      </span>
+    </>
+  )
+}
+
+const CARD_CLASS = "w-full rounded-2xl border border-gray-100 bg-gray-50 px-6 py-4 text-left"
+const SKELETON_WIDTHS = ["w-40", "w-28", "w-32"]
+
+function WaitingState({ footer }: { footer: ReactNode }) {
+  return (
+    <div role="status" aria-live="polite" className="flex flex-col items-center gap-5 w-full">
+      <div className="relative w-16 h-16">
+        <motion.span
+          className="absolute inset-0 rounded-full bg-blue-100"
+          animate={{ scale: [1, WAITING.pulseScale], opacity: [0.7, 0] }}
+          transition={WAITING.pulse}
+        />
+        <motion.div
+          className="relative w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center text-[#1a6ef5]"
+          animate={{ scale: [1, WAITING.breatheScale, 1] }}
+          transition={WAITING.breathe}
+        >
+          <Fingerprint className="w-8 h-8" strokeWidth={1.75} />
+        </motion.div>
+      </div>
+      <div>
+        <h1 className="text-2xl font-semibold text-gray-900">{t.waitingTitle}</h1>
+        <p className="text-sm text-gray-400 mt-1">{t.waitingSubtitle}</p>
+      </div>
+      {SKELETON_WIDTHS.map((width, i) => (
+        <div key={width} className={CARD_CLASS} aria-hidden>
+          <div className="h-2.5 w-14 rounded-full bg-gray-200 mb-2.5" />
+          <motion.div
+            className={`h-4 rounded-full bg-gray-200 ${width}`}
+            animate={{ opacity: [0.45, 1, 0.45] }}
+            transition={{ ...WAITING.shimmer, delay: i * WAITING.shimmerStagger }}
+          />
+        </div>
+      ))}
+      {footer}
+    </div>
+  )
+}
+
+function SuccessState({ result, footer }: { result: StoredResult; footer: (at: number) => ReactNode }) {
+  const flat = flatten(result.result ?? {})
+  const firstName = flat["PERSON_NAME_FIRSTNAME"] ?? flat["firstName"]
+  const lastName = flat["PERSON_NAME_LASTNAME"] ?? flat["lastName"]
+  const fullName = firstName && lastName ? `${firstName} ${lastName}` : null
+
+  // Detect photo key — key name contains photo/portrait keyword, value is a data URI or long base64
+  const photoKey = Object.keys(flat).find(k => /photo|portrait/i.test(k) && isPhotoValue(flat[k]))
+    ?? Object.keys(flat).find(k => isPhotoValue(flat[k]))
+  const rawPhoto = photoKey ? (flat[photoKey] as string) : null
+  const photoSrc = rawPhoto && (rawPhoto.startsWith("data:") ? rawPhoto : `data:image/jpeg;base64,${rawPhoto}`)
+
+  const skipKeys = new Set(["PERSON_NAME_FIRSTNAME", "PERSON_NAME_LASTNAME", "firstName", "lastName", "status", ...(photoKey ? [photoKey] : [])])
+  const extraFields = Object.entries(flat).filter(([k]) => !skipKeys.has(k))
+
+  const cardAt = (i: number) => RESULT_TIMING.cards + i * RESULT_TIMING.cardStagger
+  const cardCount = (fullName ? 1 : 0) + extraFields.length
+
+  return (
+    <div className="flex flex-col items-center gap-5 w-full">
+      <SuccessBadge />
+      <RiseIn at={RESULT_TIMING.title}>
+        <h1 className="text-2xl font-semibold text-gray-900">{t.successTitle}</h1>
+        <p className="text-sm text-gray-400 mt-1">{t.successSubtitle}</p>
+      </RiseIn>
+
+      {photoSrc && (
+        <motion.div
+          initial={{ opacity: 0, scale: PHOTO.initialScale, filter: `blur(${PHOTO.initialBlur}px)` }}
+          animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+          transition={{ ...PHOTO.spring, delay: sec(RESULT_TIMING.photo) }}
+          className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element -- base64 data URL from the verification result */}
+          <img src={photoSrc} alt="ID photo" className="w-full h-full object-cover" />
+        </motion.div>
+      )}
+
+      {fullName && (
+        <RiseIn at={cardAt(0)} className={CARD_CLASS}>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{t.name}</p>
+          <p className="text-lg font-semibold text-gray-900">
+            <RevealText text={fullName} at={cardAt(0) + RESULT_TIMING.textAfterCard} />
+          </p>
+        </RiseIn>
+      )}
+
+      {extraFields.map(([key, value], i) => (
+        <RiseIn key={key} at={cardAt(i + (fullName ? 1 : 0))} className={CARD_CLASS}>
+          <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{key.replace(/PERSON_|_/g, " ").trim()}</p>
+          <p className="text-sm font-medium text-gray-900 break-words">
+            {typeof value === "object" ? JSON.stringify(value) : String(value)}
+          </p>
+        </RiseIn>
+      ))}
+
+      {footer(cardAt(cardCount))}
+    </div>
+  )
+}
+
 function ResultView({ resultKey }: { resultKey: string }) {
-  const [state, setState] = useState<{ status: "fetching" } | { status: "pending" } | { status: "done"; result: StoredResult }>({ status: "fetching" })
+  const [state, setState] = useState<{ status: "waiting" } | { status: "lost" } | { status: "done"; result: StoredResult }>({ status: "waiting" })
   const [attempt, setAttempt] = useState(0)
 
+  // No polling — the server pushes the result over one event stream when the webhook lands
   useEffect(() => {
     const controller = new AbortController()
-    waitForResult(resultKey, { until: isFinished, timeoutMs: RESULT_WAIT.successView, signal: controller.signal })
+    waitForResult(resultKey, { until: isFinished, signal: controller.signal })
       .then(result => {
         if (controller.signal.aborted) return
-        setState(result ? { status: "done", result } : { status: "pending" })
+        setState(result ? { status: "done", result } : { status: "lost" })
       })
     return () => controller.abort()
   }, [resultKey, attempt])
 
   useEffect(() => {
     if (state.status !== "done") return
-    confetti({
+    // Fire as the badge pops, after the wait state has faded out
+    const timer = setTimeout(() => confetti({
       particleCount: 120,
       spread: 80,
       origin: { y: 0.55 },
       colors: ["#1a6ef5", "#a8edcc", "#fcd9b0", "#f472b6", "#a78bfa"],
-    })
+    }), WAITING.exitMs + RESULT_TIMING.badge)
+    return () => clearTimeout(timer)
   }, [state.status])
 
   const verifyAgain = (
@@ -394,23 +624,18 @@ function ResultView({ resultKey }: { resultKey: string }) {
   )
 
   let body: ReactNode
-  if (state.status === "fetching") {
-    body = (
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col items-center gap-3 text-gray-400 text-sm">
-        <Spinner className="w-6 h-6 border-gray-200 border-t-blue-500" />
-        {t.fetching}
-      </motion.div>
-    )
-  } else if (state.status === "pending") {
+  if (state.status === "waiting") {
+    body = <WaitingState footer={verifyAgain} />
+  } else if (state.status === "lost") {
     body = (
       <div className="flex flex-col items-center gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">{t.pendingTitle}</h1>
-          <p className="text-sm text-gray-400 mt-1">{t.pendingSubtitle}</p>
+          <h1 className="text-2xl font-semibold text-gray-900">{t.lostTitle}</h1>
+          <p className="text-sm text-gray-400 mt-1">{t.lostSubtitle}</p>
         </div>
         <button
           onClick={() => {
-            setState({ status: "fetching" })
+            setState({ status: "waiting" })
             setAttempt(a => a + 1)
           }}
           className="text-sm font-medium text-[#1a6ef5]"
@@ -421,68 +646,26 @@ function ResultView({ resultKey }: { resultKey: string }) {
       </div>
     )
   } else {
-    const flat = flatten(state.result.result ?? {})
-    const firstName = flat["PERSON_NAME_FIRSTNAME"] ?? flat["firstName"]
-    const lastName = flat["PERSON_NAME_LASTNAME"] ?? flat["lastName"]
-    const fullName = firstName && lastName ? `${firstName} ${lastName}` : null
-
-    // Detect photo key — key name contains photo/portrait keyword, value is a data URI or long base64
-    const photoKey = Object.keys(flat).find(k => /photo|portrait/i.test(k) && isPhotoValue(flat[k]))
-      ?? Object.keys(flat).find(k => isPhotoValue(flat[k]))
-    const rawPhoto = photoKey ? (flat[photoKey] as string) : null
-    const photoSrc = rawPhoto && (rawPhoto.startsWith("data:") ? rawPhoto : `data:image/jpeg;base64,${rawPhoto}`)
-
-    const skipKeys = new Set(["PERSON_NAME_FIRSTNAME", "PERSON_NAME_LASTNAME", "firstName", "lastName", "status", ...(photoKey ? [photoKey] : [])])
-    const extraFields = Object.entries(flat).filter(([k]) => !skipKeys.has(k))
-
-    body = (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ type: "spring", stiffness: 260, damping: 22 }}
-        className="flex flex-col items-center gap-5 w-full"
-      >
-        <div className="w-16 h-16 rounded-full bg-green-100 flex items-center justify-center text-green-700">
-          <Check className="w-8 h-8" strokeWidth={2.5} />
-        </div>
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">{t.successTitle}</h1>
-          <p className="text-sm text-gray-400 mt-1">{t.successSubtitle}</p>
-        </div>
-
-        {photoSrc && (
-          <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-lg">
-            {/* eslint-disable-next-line @next/next/no-img-element -- base64 data URL from the verification result */}
-            <img src={photoSrc} alt="ID photo" className="w-full h-full object-cover" />
-          </div>
-        )}
-
-        {fullName && (
-          <div className="w-full rounded-2xl border border-gray-100 bg-gray-50 px-6 py-4 text-left">
-            <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{t.name}</p>
-            <p className="text-lg font-semibold text-gray-900">{fullName}</p>
-          </div>
-        )}
-
-        {extraFields.map(([key, value]) => (
-          <div key={key} className="w-full rounded-2xl border border-gray-100 bg-gray-50 px-6 py-4 text-left">
-            <p className="text-xs text-gray-400 uppercase tracking-wider mb-1">{key.replace(/PERSON_|_/g, " ").trim()}</p>
-            <p className="text-sm font-medium text-gray-900 break-words">
-              {typeof value === "object" ? JSON.stringify(value) : String(value)}
-            </p>
-          </div>
-        ))}
-
-        {verifyAgain}
-      </motion.div>
-    )
+    body = <SuccessState result={state.result} footer={at => <RiseIn at={at}>{verifyAgain}</RiseIn>} />
   }
 
   return (
     <div className="min-h-dvh bg-white flex flex-col">
       <Header />
       <div className="flex flex-1 items-center justify-center pb-12">
-        <div className="flex flex-col items-center gap-6 px-8 max-w-sm w-full text-center">{body}</div>
+        <div className="flex flex-col items-center gap-6 px-8 max-w-sm w-full text-center">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={state.status === "lost" ? `lost-${attempt}` : state.status}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, scale: WAITING.exitScale, transition: { duration: sec(WAITING.exitMs) } }}
+              className="w-full"
+            >
+              {body}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
     </div>
   )
@@ -512,7 +695,7 @@ function HarnessPage() {
   // Set by the conversation's returnUrl after the final redirect
   const resultKey = searchParams.get("verification")
 
-  // Stop any result polling if the page goes away
+  // Stop waiting for a result if the page goes away
   useEffect(() => () => pendingWait.current?.abort(), [])
 
   const resetWidget = () => {
@@ -551,7 +734,7 @@ function HarnessPage() {
       })
 
       if (!onFinished) return
-      const result = await waitForResult(conversationId, { until: isFinished, timeoutMs: RESULT_WAIT.amlGate, signal: wait.signal })
+      const result = await waitForResult(conversationId, { until: isFinished, timeoutMs: AML_GATE_TIMEOUT_MS, signal: wait.signal })
       if (wait.signal.aborted) return // user closed the widget
       await closeWidget()
       resetWidget()

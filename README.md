@@ -38,11 +38,13 @@ tap "Sign up with …"
   │
 init({ widgetId, conversationId })  ← @authologic/omni-websdk
   │  user verifies in the widget (may hop out to a wallet/bank and come back)
+  │  redirect to returnUrl (/?verification=<userKey>)
+  │  GET /api/conversations/<key>/events  (one open SSE stream, no polling)
+  │ ──────────────────────────────▶  hold the stream open
   │                                                      webhook ◀─── conversation FINISHED
   │                                  POST /api/webhook  ◀─────────────
   │                                  store result
-  │  redirect to returnUrl (/?verification=<userKey>)
-  │  GET /api/conversations/<key>  ─▶ return stored result
+  │  ◀──────────── event: result  ◀  push it down the stream
   ▼
 show verified identity
 ```
@@ -53,6 +55,9 @@ Key points:
   allowlist ([`lib/methods.ts`](lib/methods.ts)), so clients can't start conversations with arbitrary strategies.
 - **The webhook is the source of truth.** The widget's `onClose("completed")` only means the UI flow ended. The harness
   confirms the outcome by waiting for the backend to report the conversation as `FINISHED`.
+- **The server pushes the result; the browser doesn't poll.** The page opens a single Server-Sent Events stream
+  ([`app/api/conversations/[id]/events/route.ts`](app/api/conversations/[id]/events/route.ts)) and shows a waiting
+  state until the webhook result is pushed down it.
 - **One widget at a time.** `init()` doesn't tear down a previously mounted widget, so the harness calls `hide()` before
   every `init()`.
 
@@ -64,6 +69,7 @@ Key points:
 | [`lib/authologic.ts`](lib/authologic.ts) | Server-side Authologic API client (credentials, request format) |
 | [`app/api/conversations/route.ts`](app/api/conversations/route.ts) | Creating a conversation server-side (strategy allowlist, return and callback URLs) |
 | [`app/api/webhook/route.ts`](app/api/webhook/route.ts) | Receiving and storing results from Authologic |
+| [`app/api/conversations/[id]/events/route.ts`](app/api/conversations/[id]/events/route.ts) | Pushing the stored result to the browser over Server-Sent Events |
 | [`lib/methods.ts`](lib/methods.ts) | Countries, verification methods and their strategy ids |
 | [`app/page.tsx`](app/page.tsx) | The sign-up UI, including staying on the page while waiting for a result (AML form gate) |
 | [`app/config/page.tsx`](app/config/page.tsx) | Per-browser demo settings: logo, visible countries, feature flags |
@@ -93,7 +99,7 @@ APP_BASE_URL=https://<your-subdomain>.ngrok-free.app
 WEBHOOK_SECRET=<a long random string>   # e.g. openssl rand -hex 32
 ```
 
-Without a reachable webhook, verifications still run, but the result screen stays on "Still processing".
+Without a reachable webhook, verifications still run, but the result screen stays on "Confirming your identity".
 
 ### Scripts
 
@@ -139,7 +145,7 @@ only goes to the server log.
 | `POST /api/conversations 502` with `401`/`403` from Authologic | Wrong `AUTHOLOGIC_API_LOGIN` / `AUTHOLOGIC_API_KEY`, or credentials for a different environment than `AUTHOLOGIC_API_URL`. |
 | Widget logs `kernel error … API request failed: 404` | The widget is talking to a different Authologic environment than the backend. Set `NEXT_PUBLIC_AUTHOLOGIC_ENVIRONMENT` to match `AUTHOLOGIC_API_URL` and restart. |
 | `hide() called but widget is not shown` | Harmless. The harness always calls `hide()` before `init()`. |
-| Result screen stays on "Still processing" | The webhook never arrived. Check that `${APP_BASE_URL}/api/webhook` is reachable and that `WEBHOOK_SECRET` matches. |
+| Result screen stays on "Confirming your identity" | The webhook never arrived. Check that `${APP_BASE_URL}/api/webhook` is reachable and that `WEBHOOK_SECRET` matches. |
 | Webhook returns `503 Webhook not configured` | Production build without `WEBHOOK_SECRET`. Set it. |
 
 ## Before going to production
@@ -149,8 +155,9 @@ This harness cuts corners that a real integration must not:
 - **Result storage.** Results are written as JSON files on local disk with a one-hour expiry
   ([`lib/result-store.ts`](lib/result-store.ts)). Use a database, encrypt personal data at rest, and apply your
   retention policy. Local files don't work across multiple instances either, and expired files are only removed when
-  they are read.
-- **Result access.** `GET /api/conversations/<id>` returns the result to anyone who knows the id. Tie results to your
+  they are read. The webhook notifies open result streams in-process, so with more than one instance the webhook and
+  the stream may land on different servers. Use a pub/sub (Redis, Postgres `LISTEN`/`NOTIFY`, …) to fan out updates.
+- **Result access.** `GET /api/conversations/<id>/events` streams the result to anyone who knows the id. Tie results to your
   authenticated user session and return only what the UI needs.
 - **Webhook authentication.** The harness checks a shared-secret token in the URL, which can end up in access logs.
   Follow Authologic's documentation for verifying webhooks in production.
