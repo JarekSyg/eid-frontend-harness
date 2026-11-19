@@ -13,6 +13,9 @@ widget takes over. When the flow finishes, your backend receives the result by w
 > **Status:** reference/demo code. It shows the integration pattern. It is not a production service — see
 > [Before going to production](#before-going-to-production).
 
+> **Questions about strategies or configuration?** Email
+> [customer-success@authologic.com](mailto:customer-success@authologic.com) for faster processing.
+
 ## Contents
 
 - [How it works](#how-it-works)
