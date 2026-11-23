@@ -183,7 +183,7 @@ importers:
         version: 0.562.0(react@19.2.3)
       next:
         specifier: 16.4.5
-        version: 16.4.5(@babel/core@7.29.13(supports-color@7.2.0))(@types/node@22.20.5)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+        version: 16.4.5(@babel/core@7.29.13(supports-color@7.2.0))(@types/node@26.6.6)(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
       react:
         specifier: 19.2.3
         version: 19.2.3
@@ -201,8 +201,8 @@ importers:
         specifier: 1.9.0
         version: 1.9.0
       '@types/node':
-        specifier: 22.20.5
-        version: 22.20.5
+        specifier: 26.6.6
+        version: 26.6.6
       '@types/react':
         specifier: 19.3.0
         version: 19.3.0
@@ -813,8 +813,8 @@ packages:
   '@types/json5@0.0.29':
     resolution: {integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==}
 
-  '@types/node@22.20.5':
-    resolution: {integrity: sha512-U2+DNr+wSjpsTS/wZGYHq7GcwfuSmKiKvoPvK22zwTlRhU91yOniN4qRR5KhIjvif7ysw/dz/hKmfDH0Ris4aA==}
+  '@types/node@26.6.6':
+    resolution: {integrity: sha512-MzQj+8Kx3XI40OmUAE6Qoh58ZMNstNNMwn2nfd3qWsfe7nDNSqJNzes4njhz6AHwrSHOffSLwXU6yb474Q4aog==}
 
   '@types/react-dom@19.3.0':
     resolution: {integrity: sha512-ZI7bU42mZXXKHn/qNLEw2IrbiINU7X5+vfgdixBHkCNpYWXjKgfQ/P+uyGb5CjOLB9UcnTeg3rylQtV2hym44Q==}
@@ -1143,6 +1143,11 @@ packages:
     resolution: {integrity: sha512-BLrgEcRTwX2o6gGxGOCNyMvGSp35YofuYzw9h1IMTRmKqttAZZVU67bdb9Pr2vUHA8+j3i2tJfjO6C6+4myGTA==}
     engines: {node: 18 || 20 || >=22}
 
+  baseline-browser-mapping@2.11.37:
+    resolution: {integrity: sha512-QYph+vfurmaxhNwi9FprfmtkT5cx2Keg8FzZ0vnjO8ukscIybVyZGMFwdllKGlTI6qyU8ck43OM9UXh+IFJihQ==}
+    engines: {node: '>=6.0.0'}
+    hasBin: true
+
   baseline-browser-mapping@2.11.38:
     resolution: {integrity: sha512-rMgy5YW7x28SMfXHLlVZDBqlWzYZ0x2rVR/6FWrNBF0chjigARK1H6nM0hKA1Um3kPOlkQFVtjJs00d2N1ezuw==}
     engines: {node: '>=6.0.0'}
@@ -1217,6 +1222,9 @@ packages:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
 
+  csstype@3.2.3:
+    resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
+
   csstype@3.2.4:
     resolution: {integrity: sha512-PoKaoPzQapnEoqUSnHx1u6W6ku8CVEgKsnpmmzU3m1nwkidpPBQ8V/Zq2+bWNrsOKoKLwTGdbx6xF7BXP1zLVQ==}
 
@@ -1278,8 +1286,8 @@ packages:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
     engines: {node: '>= 0.4'}
 
-  electron-to-chromium@1.5.489:
-    resolution: {integrity: sha512-1cF87WItryk9lj5wg5SLsNegUihdkcHuOfrANPpO02y/d2krm1Oc3GjA9KBwlT5o145FTa1bbjdLc7pZnvtnYQ==}
+  electron-to-chromium@1.5.486:
+    resolution: {integrity: sha512-rpybw4Ac4ak/An6G1Me2+61xzwobowDGyuJe71QHHOVpkZv4fPVobsLl7WH6zHSKusAMpaHxGKTpOvpy7+r3dQ==}
 
   emoji-regex@9.2.2:
     resolution: {integrity: sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg==}
@@ -1924,8 +1932,8 @@ packages:
     resolution: {integrity: sha512-PXwfBhYu0hBCPw8Dn0E+WDYb7af3dSLVWKi3HGv84IdF4TyFoC0ysxFd0Goxw7nSv4T/PzEJQxsYsEiFCKo2BA==}
     engines: {node: '>=8.6'}
 
-  minimatch@11.0.9:
-    resolution: {integrity: sha512-KCFkfyjqerNlSstjlhIGNXIKZGA/6O4V4RlhZ+Dsr621SPPw0mzlypE9D9ZOoPiVefHID+j7/XuMMlqfD/F60Q==}
+  minimatch@11.0.8:
+    resolution: {integrity: sha512-nFQuYSTVrGvysVBps5Ih+0BdnYFN/Cj3C816r6+p7yK+FHrVLGE4O4N9AFwykrlNlvM2HYt+Rad1Uiro6h88Ig==}
     engines: {node: 20 || >=22}
 
   minimatch@3.1.5:
@@ -1981,8 +1989,8 @@ packages:
     resolution: {integrity: sha512-kXs9Go0cah0qHVV2v389IXQLdLCeE1xfFtjOAF+iobu0OIoG1pje8At2vMHyaPMiPMnG/LWP50twML21eMcAag==}
     engines: {node: '>= 0.4'}
 
-  node-releases@2.0.65:
-    resolution: {integrity: sha512-PfvofsGQ+MiOQIPkX9fU8ELUWmy5zL74CdQaph/ismKszfFkfwXaw0cGiwbwym2hT9k5+mdyl8O5WQ1MD8EHmA==}
+  node-releases@2.0.64:
+    resolution: {integrity: sha512-zAPCKqMcnqs2nGy6nlkm7JduFseiBJy3EXHGLh+8pFR+TxGCBxxiEN21+UROU5CKwX/f4TlUcYjiM+vs/tsyxw==}
     engines: {node: '>=18'}
 
   object-assign@4.1.1:
@@ -2344,8 +2352,8 @@ packages:
     resolution: {integrity: sha512-nWJ91DjeOkej/TA8pXQ3myruKpKEYgqvpw9lz4OPHj/NWFNluYrjbz9j01CJ8yKQd2g4jFoOkINCTW2I5LEEyw==}
     engines: {node: '>= 0.4'}
 
-  undici-types@6.21.0:
-    resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
+  undici-types@8.9.0:
+    resolution: {integrity: sha512-KTDyRTYX8sWmKXAikPHHSyc63CRPETMctyjKFupcC6OBLXT3xsN0e9aF7m+mIXutFWpUXuedtowG7iLOzp0kQg==}
 
   unrs-resolver@1.13.0:
     resolution: {integrity: sha512-mcPQo9Vm6kXd84d/WqMiYBi2CcA57QHBX/ev5PoUEb8b2oQzUvJ6xYsfseQblnCncgnVmCZGWiFwK7KkS5JZJA==}
@@ -2965,9 +2973,9 @@ snapshots:
 
   '@types/json5@0.0.29': {}
 
-  '@types/node@22.20.5':
+  '@types/node@26.6.6':
     dependencies:
-      undici-types: 6.21.0
+      undici-types: 8.9.0
 
   '@types/react-dom@19.3.0(@types/react@19.3.0)':
     dependencies:
@@ -3049,7 +3057,7 @@ snapshots:
       '@typescript-eslint/types': 8.73.0
       '@typescript-eslint/visitor-keys': 8.73.0
       debug: 4.4.3(supports-color@7.2.0)
-      minimatch: 11.0.9
+      minimatch: 11.0.8
       semver: 7.8.6
       tinyglobby: 0.2.17
       ts-api-utils: 2.5.0(typescript@5.9.3)
@@ -3183,7 +3191,7 @@ snapshots:
       '@vue/reactivity': 3.5.45
       '@vue/runtime-core': 3.5.45
       '@vue/shared': 3.5.45
-      csstype: 3.2.4
+      csstype: 3.2.3
 
   '@vue/server-renderer@3.5.45':
     dependencies:
@@ -3331,6 +3339,8 @@ snapshots:
 
   balanced-match@4.0.4: {}
 
+  baseline-browser-mapping@2.11.37: {}
+
   baseline-browser-mapping@2.11.38: {}
 
   brace-expansion@1.1.22:
@@ -3348,10 +3358,10 @@ snapshots:
 
   browserslist@4.29.6:
     dependencies:
-      baseline-browser-mapping: 2.11.38
+      baseline-browser-mapping: 2.11.37
       caniuse-lite: 1.0.30001826
-      electron-to-chromium: 1.5.489
-      node-releases: 2.0.65
+      electron-to-chromium: 1.5.486
+      node-releases: 2.0.64
       update-browserslist-db: 1.4.0(browserslist@4.29.6)
 
   call-bind-apply-helpers@1.0.2:
@@ -3405,6 +3415,8 @@ snapshots:
       path-key: 3.1.1
       shebang-command: 2.0.0
       which: 2.0.2
+
+  csstype@3.2.3: {}
 
   csstype@3.2.4: {}
 
@@ -3468,7 +3480,7 @@ snapshots:
       es-errors: 1.3.0
       gopd: 1.2.0
 
-  electron-to-chromium@1.5.489: {}
+  electron-to-chromium@1.5.486: {}
 
   emoji-regex@9.2.2: {}
 
@@ -4232,7 +4244,7 @@ snapshots:
       braces: 3.0.3
       picomatch: 2.3.2
 
-  minimatch@11.0.9:
+  minimatch@11.0.8:
     dependencies:
       '@isaacs/nonrecursive-glob-match': 1.1.0
       brace-expansion: 5.0.13
@@ -4257,7 +4269,7 @@ snapshots:
 
   natural-compare@1.4.0: {}
 
-  next@16.4.5(@babel/core@7.29.13(supports-color@7.2.0))(@types/node@22.20.5)(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
+  next@16.4.5(@babel/core@7.29.13(supports-color@7.2.0))(@types/node@26.6.6)(react-dom@19.2.3(react@19.2.3))(react@19.2.3):
     dependencies:
       '@next/env': 16.4.5
       '@swc/helpers': 0.5.23
@@ -4276,7 +4288,7 @@ snapshots:
       '@next/swc-linux-x64-musl': 16.4.5
       '@next/swc-win32-arm64-msvc': 16.4.5
       '@next/swc-win32-x64-msvc': 16.4.5
-      sharp: 0.35.5(@types/node@22.20.5)
+      sharp: 0.35.5(@types/node@26.6.6)
     transitivePeerDependencies:
       - '@babel/core'
       - '@types/node'
@@ -4289,7 +4301,7 @@ snapshots:
       object.entries: 1.1.9
       semver: 6.3.2
 
-  node-releases@2.0.65: {}
+  node-releases@2.0.64: {}
 
   object-assign@4.1.1: {}
 
@@ -4509,7 +4521,7 @@ snapshots:
       es-errors: 1.3.0
       es-object-atoms: 1.1.2
 
-  sharp@0.35.5(@types/node@22.20.5):
+  sharp@0.35.5(@types/node@26.6.6):
     dependencies:
       '@img/colour': 1.1.0
       detect-libc: 2.1.2
@@ -4540,7 +4552,7 @@ snapshots:
       '@img/sharp-win32-arm64': 0.35.5
       '@img/sharp-win32-ia32': 0.35.5
       '@img/sharp-win32-x64': 0.35.5
-      '@types/node': 22.20.5
+      '@types/node': 26.6.6
     optional: true
 
   shebang-command@2.0.0:
@@ -4748,7 +4760,7 @@ snapshots:
       has-symbols: 1.1.0
       which-boxed-primitive: 1.1.1
 
-  undici-types@6.21.0: {}
+  undici-types@8.9.0: {}
 
   unrs-resolver@1.13.0:
     dependencies:
