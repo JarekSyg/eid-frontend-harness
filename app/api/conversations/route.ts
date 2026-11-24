@@ -19,8 +19,6 @@ export async function POST(request: Request) {
   const baseUrl = getAppBaseUrl(request)
   // Our own reference for this attempt; Authologic echoes it back in the webhook
   const userKey = crypto.randomUUID()
-  const secret = process.env.WEBHOOK_SECRET
-  const callbackUrl = `${baseUrl}/api/webhook${secret ? `?token=${encodeURIComponent(secret)}` : ""}`
 
   try {
     const conversation = await createConversation({
@@ -28,7 +26,7 @@ export async function POST(request: Request) {
       strategy: METHODS[method].strategy,
       // After external steps (bank login, wallet apps…) the user lands back here and the success view picks up the result
       returnUrl: `${baseUrl}/?verification=${userKey}`,
-      callbackUrl,
+      callbackUrl: `${baseUrl}/api/webhook`,
     })
     return NextResponse.json({ conversationId: conversation.id })
   } catch (error) {

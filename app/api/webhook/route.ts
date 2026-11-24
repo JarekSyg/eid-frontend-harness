@@ -1,12 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Authologic Sp. z o.o.
 // SPDX-License-Identifier: MIT
 
-import { timingSafeEqual } from "node:crypto"
 import { NextResponse } from "next/server"
+import { describeCallbackSignature, verifyCallbackSignature } from "@/lib/authologic"
 import { isValidResultKey, saveResult } from "@/lib/result-store"
-
-const tokenMatches = (actual: string | null, expected: string) =>
-  !!actual && actual.length === expected.length && timingSafeEqual(Buffer.from(actual), Buffer.from(expected))
 
 /**
  * Receives conversation updates from Authologic (the `callbackUrl` set when the
@@ -14,19 +11,55 @@ const tokenMatches = (actual: string | null, expected: string) =>
  * source of truth for the verification outcome.
  */
 export async function POST(request: Request) {
-  const secret = process.env.WEBHOOK_SECRET
+  const signKey = process.env.AUTHOLOGIC_SIGN_KEY
   // Fail closed in production: an unauthenticated webhook lets anyone post fake results
-  if (!secret && process.env.NODE_ENV === "production") {
-    console.error("WEBHOOK_SECRET is not set — rejecting webhook")
+  if (!signKey && process.env.NODE_ENV === "production") {
+    console.error("AUTHOLOGIC_SIGN_KEY is not set — rejecting webhook")
     return NextResponse.json({ error: "Webhook not configured" }, { status: 503 })
   }
-  if (secret && !tokenMatches(new URL(request.url).searchParams.get("token"), secret)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+
+  // The signature covers the exact bytes sent, so verify before parsing
+  const rawBody = await request.text()
+  const { headers } = request
+  const signature = headers.get("x-signature")
+  const timestamp = headers.get("x-signature-timestamp")
+  const debug = process.env.WEBHOOK_DEBUG === "1"
+  if (debug) {
+    console.log("[webhook] received", {
+      contentType: headers.get("content-type"),
+      contentLength: headers.get("content-length"),
+      userAgent: headers.get("user-agent"),
+      forwardedFor: headers.get("x-forwarded-for"),
+      ...(signKey && describeCallbackSignature(rawBody, signature, timestamp, signKey)),
+    })
+  }
+  if (signKey) {
+    const check = verifyCallbackSignature(rawBody, signature, timestamp, signKey)
+    if (!check.ok) {
+      console.warn(`[webhook] rejected: ${check.reason}`)
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 })
+    }
   }
 
-  const payload = await request.json().catch(() => null)
+  let payload
+  try {
+    payload = JSON.parse(rawBody)
+  } catch {
+    payload = null
+  }
   const conversation = payload?.payload?.conversation
+  if (debug) {
+    console.log("[webhook] payload", {
+      eventId: payload?.id,
+      target: payload?.target,
+      event: payload?.event,
+      conversationId: conversation?.id,
+      userKey: conversation?.userKey,
+      status: conversation?.status,
+    })
+  }
   if (!isValidResultKey(conversation?.id) || (conversation.userKey != null && !isValidResultKey(conversation.userKey))) {
+    console.warn("[webhook] rejected: unexpected payload shape")
     return NextResponse.json({ error: "Unexpected payload" }, { status: 400 })
   }
 

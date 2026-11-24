@@ -46,7 +46,7 @@ init({ widgetId, conversationId })  ← @authologic/omni-websdk
   │ ──────────────────────────────▶  hold the stream open
   │                                                      webhook ◀─── conversation FINISHED
   │                                  POST /api/webhook  ◀─────────────
-  │                                  store result
+  │                                  verify signature, store result
   │  ◀──────────── event: result  ◀  push it down the stream
   ▼
 show verified identity
@@ -71,7 +71,7 @@ Key points:
 | [`lib/omni-widget.ts`](lib/omni-widget.ts) | **The integration itself:** create a conversation, open the widget, wait for the backend result. Start here. |
 | [`lib/authologic.ts`](lib/authologic.ts) | Server-side Authologic API client (credentials, request format) |
 | [`app/api/conversations/route.ts`](app/api/conversations/route.ts) | Creating a conversation server-side (strategy allowlist, return and callback URLs) |
-| [`app/api/webhook/route.ts`](app/api/webhook/route.ts) | Receiving and storing results from Authologic |
+| [`app/api/webhook/route.ts`](app/api/webhook/route.ts) | Receiving results from Authologic, verifying their signature, and storing them |
 | [`app/api/conversations/[id]/events/route.ts`](app/api/conversations/[id]/events/route.ts) | Pushing the stored result to the browser over Server-Sent Events |
 | [`lib/methods.ts`](lib/methods.ts) | Countries, verification methods and their strategy ids |
 | [`app/page.tsx`](app/page.tsx) | The sign-up UI, including staying on the page while waiting for a result (AML form gate) |
@@ -99,10 +99,38 @@ set `APP_BASE_URL` to that URL:
 ngrok http 3000
 # then in .env.local:
 APP_BASE_URL=https://<your-subdomain>.ngrok-free.app
-WEBHOOK_SECRET=<a long random string>   # e.g. openssl rand -hex 32
+AUTHOLOGIC_SIGN_KEY=<your sandbox Sign Key>
 ```
 
 Without a reachable webhook, verifications still run, but the result screen stays on "Confirming your identity".
+
+### Verifying callbacks
+
+Authologic signs every callback. The webhook checks the signature before it trusts the payload
+([`verifyCallbackSignature`](lib/authologic.ts)):
+
+1. `X-Signature-Timestamp` (milliseconds since the epoch) must be within 5 minutes of the server clock.
+2. `X-Signature` must equal the hex HMAC-SHA256 of `<X-Signature-Timestamp>:<raw request body>`, keyed with your
+   **Sign Key**.
+
+Requests that fail either check get `401`. The check runs against the raw body before it's parsed, because
+re-serialised JSON won't match the signature.
+
+**What to set up on the Authologic side:**
+
+- **Sign Key** → `AUTHOLOGIC_SIGN_KEY`. Authologic gives you this key during onboarding, along with the API key and
+  widget id. It's a separate key, so don't use the API key or your OmniPanel password here. Sandbox and production
+  each have their own Sign Key, and you get the production one when your configuration is copied over at go-live.
+- **API key** → `AUTHOLOGIC_API_KEY`, and your account name → `AUTHOLOGIC_API_LOGIN`. Also per environment.
+- **Callback URL**: you don't configure this in OmniPanel. The harness sends `${APP_BASE_URL}/api/webhook` as
+  `callbackUrl` each time it creates a conversation ([`app/api/conversations/route.ts`](app/api/conversations/route.ts)).
+
+If you can't find your Sign Key, or need a new one, contact Authologic. See the
+[callback documentation](https://developer.authologic.com/docs/integration/callbacks#verification-of-the-message-sender)
+for the full algorithm and a test vector.
+
+In development the signature check is skipped if `AUTHOLOGIC_SIGN_KEY` is empty, so you can post test payloads with
+`curl`. Production builds reject every callback until it's set.
 
 ### Scripts
 
@@ -123,7 +151,8 @@ them; `NEXT_PUBLIC_*` values are inlined into the browser bundle at build time.
 | --- | --- | --- |
 | `AUTHOLOGIC_API_URL`, `AUTHOLOGIC_API_LOGIN`, `AUTHOLOGIC_API_KEY` | server | Authologic API access |
 | `APP_BASE_URL` | server | Public HTTPS origin used for the return and webhook URLs |
-| `WEBHOOK_SECRET` | server | Shared secret the webhook URL must carry (`?token=`). Required in production builds. |
+| `WEBHOOK_DEBUG` | server | Set to `1` to log callback signature details and event metadata (no keys or result data) |
+| `AUTHOLOGIC_SIGN_KEY` | server | Sign Key used to verify callback signatures (see [Verifying callbacks](#verifying-callbacks)). Per environment. Required in production builds. |
 | `NEXT_PUBLIC_AUTHOLOGIC_WIDGET_ID` | browser | Widget id (`development_only` works in sandbox) |
 | `NEXT_PUBLIC_AUTHOLOGIC_ENVIRONMENT` | browser | `sandbox`, `production`, or a custom base URL. Must match the environment of `AUTHOLOGIC_API_URL`. |
 | `NEXT_PUBLIC_FORM_URL` | browser | Optional target for the "Fill out the form" button |
@@ -148,8 +177,11 @@ only goes to the server log.
 | `POST /api/conversations 502` with `401`/`403` from Authologic | Wrong `AUTHOLOGIC_API_LOGIN` / `AUTHOLOGIC_API_KEY`, or credentials for a different environment than `AUTHOLOGIC_API_URL`. |
 | Widget logs `kernel error … API request failed: 404` | The widget is talking to a different Authologic environment than the backend. Set `NEXT_PUBLIC_AUTHOLOGIC_ENVIRONMENT` to match `AUTHOLOGIC_API_URL` and restart. |
 | `hide() called but widget is not shown` | Harmless. The harness always calls `hide()` before `init()`. |
-| Result screen stays on "Confirming your identity" | The webhook never arrived. Check that `${APP_BASE_URL}/api/webhook` is reachable and that `WEBHOOK_SECRET` matches. |
-| Webhook returns `503 Webhook not configured` | Production build without `WEBHOOK_SECRET`. Set it. |
+| Result screen stays on "Confirming your identity" | The webhook never arrived or was rejected. Check that `${APP_BASE_URL}/api/webhook` is reachable and look for `401` responses in the server log. |
+| Webhook returns `401 Invalid signature` | The server log says why (`[webhook] rejected: …`). Set `WEBHOOK_DEBUG=1` for more detail. |
+| `[webhook] rejected: signature mismatch` | `AUTHOLOGIC_SIGN_KEY` is the wrong key: the API key, or the Sign Key for another environment. If the debug log shows `matchesWithTrimmedKey: true`, remove stray spaces or quotes around the value. |
+| `[webhook] rejected: timestamp is … ms off` | The server clock is more than 5 minutes off. Sync it with NTP. |
+| Webhook returns `503 Webhook not configured` | Production build without `AUTHOLOGIC_SIGN_KEY`. Set it. |
 
 ## Before going to production
 
@@ -162,8 +194,9 @@ This harness cuts corners that a real integration must not:
   the stream may land on different servers. Use a pub/sub (Redis, Postgres `LISTEN`/`NOTIFY`, …) to fan out updates.
 - **Result access.** `GET /api/conversations/<id>/events` streams the result to anyone who knows the id. Tie results to your
   authenticated user session and return only what the UI needs.
-- **Webhook authentication.** The harness checks a shared-secret token in the URL, which can end up in access logs.
-  Follow Authologic's documentation for verifying webhooks in production.
+- **Callbacks.** The harness verifies signatures, but it doesn't de-duplicate. Authologic retries failed deliveries
+  (at least 20 attempts over 4 days) using the same event `id`, so make your handler idempotent on that `id`. Swap in
+  the production Sign Key at go-live. It changes along with the API address and API key.
 - **SDK license.** `@authologic/omni-websdk` is proprietary. It's licensed for development and integration testing,
   and production use needs a separate agreement with Authologic. See the package's `LICENSE`.
 
